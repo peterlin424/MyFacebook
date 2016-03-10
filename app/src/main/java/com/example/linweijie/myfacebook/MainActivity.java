@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity implements FacebookCallback<
 
     private CallbackManager callbackManager;
     private AccessToken accessToken;
-    private boolean isLoggedIn = false; // by default assume not logged in
+    private Button bt_login;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,26 +43,39 @@ public class MainActivity extends AppCompatActivity implements FacebookCallback<
         LoginManager.getInstance().registerCallback(callbackManager, this);
 
         //自定義按鈕
-        Button bt_login = (Button)findViewById(R.id.bt_login);
+        bt_login = (Button)findViewById(R.id.bt_login);
         bt_login.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                LoginManager.getInstance().logInWithReadPermissions(MainActivity.this, Arrays.asList("public_profile", "user_friends"));
+                if (facebookPost()) {
+                    LoginManager.getInstance().logOut();
+                    bt_login.setBackground(getDrawable(R.drawable.selector_button1));
+                    bt_login.setText("Login with facebook");
+                } else {
+                    LoginManager.getInstance().logInWithReadPermissions(MainActivity.this, Arrays.asList("public_profile", "user_friends"));
+                }
             }
         });
-
-        LoginManager.getInstance().logOut();
-        facebookPost();
+        if (facebookPost()){
+            // do logout
+            bt_login.setBackground(getDrawable(R.drawable.selector_button2));
+            bt_login.setText("Logout");
+        } else {
+            // do login
+            bt_login.setBackground(getDrawable(R.drawable.selector_button1));
+            bt_login.setText("Login with facebook");
+        }
     }
 
-    private void facebookPost() {
+    private boolean facebookPost() {
         //check login
         AccessToken accessToken = AccessToken.getCurrentAccessToken();
         if (accessToken == null) {
             Log.d("FB", ">>>" + "Signed Out");
-        } else {
-            Log.d("FB", ">>>" + "Signed In");
+            return false;
         }
+        Log.d("FB", ">>>" + "Signed In");
+        return true;
     }
 
     /**
@@ -97,13 +110,10 @@ public class MainActivity extends AppCompatActivity implements FacebookCallback<
     @Override
     public void onSuccess(LoginResult loginResult) {
         //accessToken之後或許還會用到 先存起來
-
         accessToken = loginResult.getAccessToken();
-
         Log.d("FB","access token got.");
 
         //send request and call graph api
-
         GraphRequest request = GraphRequest.newMeRequest(
                 accessToken,
                 new GraphRequest.GraphJSONObjectCallback() {
@@ -122,11 +132,15 @@ public class MainActivity extends AppCompatActivity implements FacebookCallback<
                 });
 
         //包入你想要得到的資料 送出request
-
         Bundle parameters = new Bundle();
         parameters.putString("fields", "id,name,link");
         request.setParameters(parameters);
         request.executeAsync();
+
+
+        // 變更按鈕
+        bt_login.setBackground(getDrawable(R.drawable.selector_button2));
+        bt_login.setText("Logout");
     }
 
     @Override
